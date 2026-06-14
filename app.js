@@ -561,3 +561,52 @@ document.addEventListener('keydown', (e) => {
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
     }
 });
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        Storage,
+        encouragements,
+        exerciseDetails,
+        calculateStreak,
+        toggleHabit,
+        addHabit,
+        showEncouragement,
+        hideEncouragementModal,
+        showAddHabitModal,
+        selectIcon,
+        updateHabitStats,
+        renderHabits,
+        renderWorkouts,
+        showAddWorkoutModal,
+        addExercise,
+        startRestTimer,
+        stopRestTimer,
+        addSet,
+        updateSet,
+        removeSet,
+        saveWorkout,
+        deleteWorkout,
+        updateWorkoutStats,
+        renderIdeas,
+        addIdea,
+        toggleIdeaComplete,
+        deleteIdea,
+        renderVideos,
+        addVideo,
+        parseVideoUrl,
+        openVideo,
+        hideModal,
+        updateStats,
+        switchPage,
+        updateDate,
+        renderWorkoutExercises,
+        toggleExerciseDetail,
+        get currentWorkout() { return currentWorkout; },
+        set currentWorkout(val) { currentWorkout = val; },
+        get selectedIcon() { return selectedIcon; },
+        set selectedIcon(val) { selectedIcon = val; },
+        get restTimerInterval() { return restTimerInterval; },
+        set restTimerInterval(val) { restTimerInterval = val; }
+    };
+}
