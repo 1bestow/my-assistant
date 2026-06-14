@@ -1,0 +1,13 @@
+{
+  "name": "my-assistant",
+  "version": "1.0.0",
+  "description": "Personal assistant PWA - habit tracking, workout logging, idea capture, video bookmarks",
+  "scripts": {
+    "test": "jest --coverage",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}
