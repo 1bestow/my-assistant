@@ -1,7 +1,8 @@
-const CACHE_NAME = 'personal-assistant-v1';
+const CACHE_NAME = 'personal-assistant-v2';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/utils.js',
   '/app.js',
   '/manifest.json',
   '/icons/icon-192x192.png',
