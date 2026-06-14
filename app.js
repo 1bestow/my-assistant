@@ -78,13 +78,7 @@ function renderHabits() {
     const today = new Date().toDateString();
     
     if (habits.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size: 64px; margin-bottom: 16px;">📝</div>
-                <div>还没有习惯</div>
-                <div style="font-size: 14px; margin-top: 8px;">点击右下角添加第一个习惯</div>
-            </div>
-        `;
+        Utils.renderEmptyState(container, '📝', '还没有习惯', '点击右下角添加第一个习惯');
         return;
     }
     
@@ -154,22 +148,23 @@ function toggleHabit(id) {
 }
 
 function showEncouragement() {
-    const modal = document.getElementById('encouragementModal');
     const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
     
-    document.getElementById('encouragementEmoji').textContent = msg.emoji;
-    document.getElementById('encouragementText').textContent = msg.text;
-    document.getElementById('encouragementSubtext').textContent = msg.subtext;
+    Utils.updateTextContent({
+        encouragementEmoji: msg.emoji,
+        encouragementText: msg.text,
+        encouragementSubtext: msg.subtext
+    });
     
-    modal.classList.add('show');
+    Utils.showModal('encouragementModal');
 }
 
 function hideEncouragementModal() {
-    document.getElementById('encouragementModal').classList.remove('show');
+    Utils.hideModal('encouragementModal');
 }
 
 function showAddHabitModal() {
-    document.getElementById('addHabitModal').classList.add('show');
+    Utils.showModal('addHabitModal');
     document.getElementById('habitNameInput').value = '';
     selectedIcon = '⭐';
 }
@@ -182,18 +177,10 @@ function addHabit() {
     const name = document.getElementById('habitNameInput').value.trim();
     if (!name) return;
     
-    const habits = Storage.get('habits');
-    habits.push({
-        id: Date.now().toString(),
-        name,
-        icon: selectedIcon,
-        completedDates: [],
-        createdAt: new Date().toISOString()
+    Utils.addItem('habits', { name, icon: selectedIcon, completedDates: [] }, () => {
+        Utils.hideModal('addHabitModal');
+        renderHabits();
     });
-    
-    Storage.set('habits', habits);
-    hideModal('addHabitModal');
-    renderHabits();
 }
 
 function updateHabitStats() {
@@ -202,9 +189,11 @@ function updateHabitStats() {
     const completed = habits.filter(h => h.completedDates?.includes(today)).length;
     const totalStreak = habits.reduce((sum, h) => sum + calculateStreak(h), 0);
     
-    document.getElementById('habitCompleted').textContent = completed;
-    document.getElementById('habitTotal').textContent = habits.length;
-    document.getElementById('habitStreak').textContent = totalStreak;
+    Utils.updateTextContent({
+        habitCompleted: completed,
+        habitTotal: habits.length,
+        habitStreak: totalStreak
+    });
 }
 
 // ========== 训练记录 ==========
@@ -214,13 +203,7 @@ function renderWorkouts() {
     const container = document.getElementById('workoutsList');
     
     if (workouts.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size: 64px; margin-bottom: 16px;">💪</div>
-                <div>还没有训练记录</div>
-                <div style="font-size: 14px; margin-top: 8px;">点击右下角开始训练</div>
-            </div>
-        `;
+        Utils.renderEmptyState(container, '💪', '还没有训练记录', '点击右下角开始训练');
         return;
     }
     
@@ -247,7 +230,7 @@ function renderWorkouts() {
 function showAddWorkoutModal() {
     currentWorkout = [];
     document.getElementById('workoutExercises').innerHTML = '';
-    document.getElementById('addWorkoutModal').classList.add('show');
+    Utils.showModal('addWorkoutModal');
 }
 
 function addExercise(name) {
@@ -348,24 +331,16 @@ function saveWorkout() {
         return;
     }
     
-    const workouts = Storage.get('workouts');
-    workouts.push({
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
-        exercises: currentWorkout
+    Utils.addItem('workouts', { date: new Date().toISOString(), exercises: currentWorkout }, () => {
+        stopRestTimer();
+        Utils.hideModal('addWorkoutModal');
+        renderWorkouts();
     });
-    
-    Storage.set('workouts', workouts);
-    stopRestTimer();
-    hideModal('addWorkoutModal');
-    renderWorkouts();
 }
 
 function deleteWorkout(id, event) {
     event.stopPropagation();
-    const workouts = Storage.get('workouts').filter(w => w.id !== id);
-    Storage.set('workouts', workouts);
-    renderWorkouts();
+    Utils.deleteItem('workouts', id, renderWorkouts);
 }
 
 function updateWorkoutStats() {
@@ -380,9 +355,11 @@ function updateWorkoutStats() {
         sum + w.exercises.reduce((s, ex) => 
             s + ex.sets.reduce((setSum, set) => setSum + (set.weight * set.reps), 0), 0), 0);
     
-    document.getElementById('workoutCount').textContent = weekWorkouts.length;
-    document.getElementById('totalVolume').textContent = totalVolume.toFixed(0);
-    document.getElementById('totalSets').textContent = totalSets;
+    Utils.updateTextContent({
+        workoutCount: weekWorkouts.length,
+        totalVolume: totalVolume.toFixed(0),
+        totalSets: totalSets
+    });
 }
 
 // ========== 灵感捕捉 ==========
@@ -392,13 +369,7 @@ function renderIdeas() {
     const container = document.getElementById('ideasList');
     
     if (ideas.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size: 64px; margin-bottom: 16px;">💡</div>
-                <div>还没有记录灵感</div>
-                <div style="font-size: 14px; margin-top: 8px;">在上方快速记录你的想法</div>
-            </div>
-        `;
+        Utils.renderEmptyState(container, '💡', '还没有记录灵感', '在上方快速记录你的想法');
         return;
     }
     
@@ -421,33 +392,18 @@ function addIdea() {
     const content = input.value.trim();
     if (!content) return;
     
-    const ideas = Storage.get('ideas');
-    ideas.push({
-        id: Date.now().toString(),
-        content,
-        completed: false,
-        createdAt: new Date().toISOString()
+    Utils.addItem('ideas', { content, completed: false }, () => {
+        input.value = '';
+        renderIdeas();
     });
-    
-    Storage.set('ideas', ideas);
-    input.value = '';
-    renderIdeas();
 }
 
 function toggleIdeaComplete(id) {
-    const ideas = Storage.get('ideas');
-    const idea = ideas.find(i => i.id === id);
-    if (idea) {
-        idea.completed = !idea.completed;
-        Storage.set('ideas', ideas);
-        renderIdeas();
-    }
+    Utils.toggleItemProp('ideas', id, 'completed', renderIdeas);
 }
 
 function deleteIdea(id) {
-    const ideas = Storage.get('ideas').filter(i => i.id !== id);
-    Storage.set('ideas', ideas);
-    renderIdeas();
+    Utils.deleteItem('ideas', id, renderIdeas);
 }
 
 // ========== 稍后再看 ==========
@@ -457,13 +413,7 @@ function renderVideos() {
     const container = document.getElementById('videosList');
     
     if (videos.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size: 64px; margin-bottom: 16px;">📺</div>
-                <div>还没有保存视频</div>
-                <div style="font-size: 14px; margin-top: 8px;">粘贴链接保存想看的视频</div>
-            </div>
-        `;
+        Utils.renderEmptyState(container, '📺', '还没有保存视频', '粘贴链接保存想看的视频');
         return;
     }
     
@@ -486,19 +436,10 @@ function addVideo() {
     
     const videoInfo = parseVideoUrl(url);
     
-    const videos = Storage.get('videos');
-    videos.push({
-        id: Date.now().toString(),
-        url,
-        title: videoInfo.title,
-        platform: videoInfo.platform,
-        tags: videoInfo.tags,
-        createdAt: new Date().toISOString()
+    Utils.addItem('videos', { url, title: videoInfo.title, platform: videoInfo.platform, tags: videoInfo.tags }, () => {
+        input.value = '';
+        renderVideos();
     });
-    
-    Storage.set('videos', videos);
-    input.value = '';
-    renderVideos();
 }
 
 function parseVideoUrl(url) {
@@ -538,7 +479,7 @@ function openVideo(url) {
 // ========== 通用函数 ==========
 
 function hideModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
+    Utils.hideModal(modalId);
 }
 
 function updateStats() {
