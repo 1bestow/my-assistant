@@ -1,11 +1,25 @@
 // 数据存储
 const Storage = {
     get(key) {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : [];
+        try {
+            const data = localStorage.getItem(key);
+            if (!data) return [];
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.error(`Storage.get("${key}") failed:`, e);
+            return [];
+        }
     },
     set(key, value) {
-        localStorage.setItem(key, JSON.stringify(value));
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.error(`Storage.set("${key}") failed:`, e);
+            if (e.name === 'QuotaExceededError') {
+                alert('本地存储空间已满，请清理部分数据后重试');
+            }
+        }
     }
 };
 
@@ -54,12 +68,21 @@ function updateDate() {
 }
 
 // 页面切换
-function switchPage(page) {
+function switchPage(page, evt) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
-    document.getElementById(`page-${page}`).classList.add('active');
-    event.currentTarget.classList.add('active');
+    const pageEl = document.getElementById(`page-${page}`);
+    if (!pageEl) {
+        console.error(`switchPage: page "${page}" not found`);
+        return;
+    }
+    pageEl.classList.add('active');
+
+    const navEvent = evt || window.event;
+    if (navEvent && navEvent.currentTarget) {
+        navEvent.currentTarget.classList.add('active');
+    }
     
     // 更新FAB按钮功能
     const fab = document.getElementById('fabBtn');
@@ -137,6 +160,10 @@ function calculateStreak(habit) {
 function toggleHabit(id) {
     const habits = Storage.get('habits');
     const habit = habits.find(h => h.id === id);
+    if (!habit) {
+        console.error(`toggleHabit: habit "${id}" not found`);
+        return;
+    }
     const today = new Date().toDateString();
     
     if (!habit.completedDates) habit.completedDates = [];
@@ -532,6 +559,12 @@ function parseVideoUrl(url) {
 }
 
 function openVideo(url) {
+    try {
+        new URL(url);
+    } catch {
+        console.error('openVideo: invalid URL', url);
+        return;
+    }
     window.open(url, '_blank');
 }
 
