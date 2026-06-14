@@ -1,13 +1,32 @@
 // 数据存储
 const Storage = {
     get(key) {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : [];
+        try {
+            const data = localStorage.getItem(key);
+            const parsed = data ? JSON.parse(data) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
     },
     set(key, value) {
         localStorage.setItem(key, JSON.stringify(value));
     }
 };
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
+function sanitizeUrl(url) {
+    try {
+        const parsed = new URL(url);
+        if (['http:', 'https:'].includes(parsed.protocol)) return parsed.href;
+    } catch {}
+    return '';
+}
 
 // 当前选中的图标
 let selectedIcon = '⭐';
@@ -91,11 +110,14 @@ function renderHabits() {
     container.innerHTML = habits.map(habit => {
         const isCompleted = habit.completedDates?.includes(today);
         const streak = calculateStreak(habit);
+        const safeId = escapeHtml(habit.id);
+        const safeName = escapeHtml(habit.name);
+        const safeIcon = escapeHtml(habit.icon);
         return `
-            <div class="glass-card habit-item ${isCompleted ? 'completed' : ''}" onclick="toggleHabit('${habit.id}')">
-                <div class="habit-icon">${habit.icon}</div>
+            <div class="glass-card habit-item ${isCompleted ? 'completed' : ''}" onclick="toggleHabit('${safeId}')">
+                <div class="habit-icon">${safeIcon}</div>
                 <div class="habit-info">
-                    <div class="habit-name">${habit.name}</div>
+                    <div class="habit-name">${safeName}</div>
                     <div class="habit-meta">
                         <span>🔥 ${streak}天</span>
                         <span>完成率 ${habit.completedDates?.length || 0}次</span>
@@ -229,14 +251,15 @@ function renderWorkouts() {
         const totalSets = workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
         const totalVolume = workout.exercises.reduce((sum, ex) => 
             sum + ex.sets.reduce((s, set) => s + (set.weight * set.reps), 0), 0);
+        const safeId = escapeHtml(workout.id);
         
         return `
             <div class="glass-card list-item">
                 <div class="list-item-content">
-                    <div class="list-item-title">${date.toLocaleDateString('zh-CN')} · ${workout.exercises.length}个动作</div>
+                    <div class="list-item-title">${escapeHtml(date.toLocaleDateString('zh-CN'))} · ${workout.exercises.length}个动作</div>
                     <div class="list-item-subtitle">${totalSets}组 · ${totalVolume.toFixed(0)}kg</div>
                 </div>
-                <div class="delete-btn" onclick="deleteWorkout('${workout.id}', event)">🗑️</div>
+                <div class="delete-btn" onclick="deleteWorkout('${safeId}', event)">🗑️</div>
             </div>
         `;
     }).join('');
@@ -402,18 +425,22 @@ function renderIdeas() {
         return;
     }
     
-    container.innerHTML = ideas.slice().reverse().map(idea => `
+    container.innerHTML = ideas.slice().reverse().map(idea => {
+        const safeId = escapeHtml(idea.id);
+        const safeContent = escapeHtml(idea.content);
+        return `
         <div class="glass-card list-item">
-            <div class="checkbox ${idea.completed ? 'checked' : ''}" onclick="toggleIdeaComplete('${idea.id}')">
+            <div class="checkbox ${idea.completed ? 'checked' : ''}" onclick="toggleIdeaComplete('${safeId}')">
                 ${idea.completed ? '✓' : ''}
             </div>
             <div class="list-item-content">
-                <div class="list-item-title" style="${idea.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${idea.content}</div>
-                <div class="list-item-subtitle">${new Date(idea.createdAt).toLocaleString('zh-CN')}</div>
+                <div class="list-item-title" style="${idea.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${safeContent}</div>
+                <div class="list-item-subtitle">${escapeHtml(new Date(idea.createdAt).toLocaleString('zh-CN'))}</div>
             </div>
-            <div class="delete-btn" onclick="deleteIdea('${idea.id}')">🗑️</div>
+            <div class="delete-btn" onclick="deleteIdea('${safeId}')">🗑️</div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function addIdea() {
@@ -467,22 +494,32 @@ function renderVideos() {
         return;
     }
     
-    container.innerHTML = videos.slice().reverse().map(video => `
-        <div class="glass-card video-card" onclick="openVideo('${video.url}')">
+    container.innerHTML = videos.slice().reverse().map(video => {
+        const safeUrl = escapeHtml(sanitizeUrl(video.url));
+        const safeTitle = escapeHtml(video.title || '未命名视频');
+        const safePlatform = escapeHtml(video.platform);
+        return `
+        <div class="glass-card video-card" onclick="openVideo('${safeUrl}')">
             <div class="video-thumbnail">▶️</div>
             <div class="video-info">
-                <div class="video-title">${video.title || '未命名视频'}</div>
-                <div class="video-platform">${video.platform} · ${new Date(video.createdAt).toLocaleDateString('zh-CN')}</div>
-                ${video.tags ? `<div style="margin-top: 8px;">${video.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
+                <div class="video-title">${safeTitle}</div>
+                <div class="video-platform">${safePlatform} · ${escapeHtml(new Date(video.createdAt).toLocaleDateString('zh-CN'))}</div>
+                ${video.tags ? `<div style="margin-top: 8px;">${video.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function addVideo() {
     const input = document.getElementById('videoUrlInput');
     const url = input.value.trim();
     if (!url) return;
+    
+    if (!sanitizeUrl(url)) {
+        alert('请输入有效的 http/https 链接');
+        return;
+    }
     
     const videoInfo = parseVideoUrl(url);
     
@@ -532,7 +569,8 @@ function parseVideoUrl(url) {
 }
 
 function openVideo(url) {
-    window.open(url, '_blank');
+    const safe = sanitizeUrl(url);
+    if (safe) window.open(safe, '_blank', 'noopener,noreferrer');
 }
 
 // ========== 通用函数 ==========
